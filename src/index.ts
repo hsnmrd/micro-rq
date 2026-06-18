@@ -23,7 +23,7 @@ export type {
 } from "./core/types";
 export type {
   MicroApi
-} from "./core/create-micro-api"\
+} from "./core/create-micro-api"
 export type {
   MicroQueryKey
 } from "./core/keys"

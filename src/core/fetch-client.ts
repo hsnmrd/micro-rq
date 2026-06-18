@@ -123,11 +123,19 @@ function getAuthMode<TVariables>(input: RequestInput<TVariables>) {
 function isBodyInit(value: unknown): value is BodyInit {
   return (
     typeof value === "string" ||
-    value instanceof Blob ||
-    value instanceof FormData ||
-    value instanceof URLSearchParams ||
-    value instanceof ArrayBuffer ||
+    isInstanceOfAvailableGlobal(value, "Blob") ||
+    isInstanceOfAvailableGlobal(value, "FormData") ||
+    isInstanceOfAvailableGlobal(value, "URLSearchParams") ||
+    isInstanceOfAvailableGlobal(value, "ArrayBuffer") ||
     ArrayBuffer.isView(value) ||
-    value instanceof ReadableStream
+    isInstanceOfAvailableGlobal(value, "ReadableStream")
   );
+}
+
+function isInstanceOfAvailableGlobal<TName extends keyof typeof globalThis>(
+  value: unknown,
+  name: TName,
+): boolean {
+  const constructor = globalThis[name];
+  return typeof constructor === "function" && value instanceof constructor;
 }
