@@ -12,6 +12,7 @@ export type {
 } from "./core/endpoint-types";
 export type {
   AuthMode,
+  MaybePromise,
   CreateMicroApiConfig,
   HttpMethod,
   MicroRequestContext,
@@ -20,3 +21,9 @@ export type {
   TokenProvider,
   TokenProviderConfig,
 } from "./core/types";
+export type {
+  MicroApi
+} from "./core/create-micro-api"\
+export type {
+  MicroQueryKey
+} from "./core/keys"
