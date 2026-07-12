@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "micro-rq Docs",
-  description: "Documentation for micro-rq, a typed REST helper for TanStack Query.",
+  title: "tanstack-rest-query Docs",
+  description: "Documentation for tanstack-rest-query: define REST resources once and generate TanStack Query configs.",
+  icons: {
+    icon: "/rtq.png",
+    shortcut: "/rtq.png",
+    apple: "/rtq.png",
+  },
 };
 
 type RootLayoutProps = {
