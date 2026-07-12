@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMicroApi } from "../src";
 
 describe("resource endpoints", () => {
-  it("query build returns only queryKey and queryFn", () => {
+  it("toQuery returns only queryKey and queryFn", () => {
     const api = createMicroApi({
       name: "main",
       baseUrl: "/api",
@@ -12,10 +12,10 @@ describe("resource endpoints", () => {
       detail: api.get<{ id: string }, string>((id) => `/users/${id}`),
     });
 
-    expect(Object.keys(users.detail.build("1"))).toEqual(["queryKey", "queryFn"]);
+    expect(Object.keys(users.detail.toQuery("1"))).toEqual(["queryKey", "queryFn"]);
   });
 
-  it("mutation build returns only mutationFn", () => {
+  it("toMutation returns only mutationFn", () => {
     const api = createMicroApi({
       name: "main",
       baseUrl: "/api",
@@ -25,6 +25,6 @@ describe("resource endpoints", () => {
       create: api.post<{ id: string }, { name: string }>("/users"),
     });
 
-    expect(Object.keys(users.create.build())).toEqual(["mutationFn"]);
+    expect(Object.keys(users.create.toMutation())).toEqual(["mutationFn"]);
   });
 });

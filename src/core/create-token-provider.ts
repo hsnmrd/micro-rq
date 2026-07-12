@@ -7,13 +7,15 @@ export function createTokenProvider<TTokens = unknown>(
   let refreshedAccessToken: string | null = null;
 
   const refreshAccessToken = async (): Promise<TTokens> => {
-    if (!config.refresh) {
+    const refreshConfig = getRefreshConfig(config);
+
+    if (!refreshConfig) {
       throw new Error("Token refresh is not configured.");
     }
 
     if (!refreshPromise) {
       refreshPromise = runRefresh(config, (tokens) => {
-        refreshedAccessToken = config.getAccessTokenFromRefreshResult?.(tokens) ?? refreshedAccessToken;
+        refreshedAccessToken = refreshConfig.selectAccessToken?.(tokens) ?? refreshedAccessToken;
       }).finally(() => {
         refreshPromise = null;
       });
@@ -25,7 +27,7 @@ export function createTokenProvider<TTokens = unknown>(
   return {
     getAccessToken: async () => refreshedAccessToken ?? config.getAccessToken(),
     refreshAccessToken,
-    hasRefresh: () => Boolean(config.refresh),
+    hasRefresh: () => Boolean(getRefreshConfig(config)),
   };
 }
 
@@ -33,23 +35,33 @@ async function runRefresh<TTokens>(
   config: TokenProviderConfig<TTokens>,
   onTokens: (tokens: TTokens) => void,
 ): Promise<TTokens> {
+  const refreshConfig = getRefreshConfig(config);
+
+  if (!refreshConfig) {
+    throw new Error("Token refresh is not configured.");
+  }
+
   try {
     const refreshToken = await config.getRefreshToken?.();
-    const tokens = await config.refresh?.({ refreshToken });
+    const tokens = await refreshConfig.fn({ refreshToken });
 
     if (tokens === undefined) {
       throw new Error("Token refresh returned no tokens.");
     }
 
     onTokens(tokens);
-    await config.onRefreshSuccess?.(tokens);
+    await refreshConfig.onSuccess?.(tokens);
     return tokens;
   } catch (error) {
     try {
-      await config.onRefreshFailed?.(error);
+      await refreshConfig.onError?.(error);
     } catch {
       // Preserve the refresh failure as the request error.
     }
     throw error;
   }
+}
+
+function getRefreshConfig<TTokens>(config: TokenProviderConfig<TTokens>) {
+  return config.refresh;
 }

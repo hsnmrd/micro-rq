@@ -47,12 +47,12 @@ function buildQueryEndpoint<TData, TVariables>(
       variables: variables as TVariables,
       mappers: endpoint.mappers,
     });
-  const build = (variables?: TVariables) => ({
+  const toQuery = (variables?: TVariables) => ({
     queryKey: key(variables),
     queryFn: fn(variables),
   });
 
-  return { baseKey, key, fn, build };
+  return { baseKey, key, fn, toQuery };
 }
 
 function buildMutationEndpoint<TData, TVariables>(
@@ -69,7 +69,7 @@ function buildMutationEndpoint<TData, TVariables>(
 
   return {
     fn,
-    build: () => ({
+    toMutation: () => ({
       mutationFn: fn,
     }),
   };

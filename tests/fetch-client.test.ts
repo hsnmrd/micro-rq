@@ -70,6 +70,60 @@ describe("fetch client", () => {
     expect(new Headers(init?.headers).get("content-type")).toBe("application/json");
   });
 
+  it("passes FormData bodies without forcing JSON content-type", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ url: "/files/avatar.png" }));
+    const api = createMicroApi({ name: "main", baseUrl: "/api", fetcher });
+    const files = api.resource("files", {
+      upload: api.post<{ url: string }, { file: Blob; filename: string }>("/files", {
+        body: ({ file, filename }) => {
+          const formData = new FormData();
+          formData.append("file", file, filename);
+          return formData;
+        },
+      }),
+    });
+    const file = new Blob(["hello"], { type: "text/plain" });
+
+    await files.upload.fn({ file, filename: "hello.txt" });
+
+    const init = fetcher.mock.calls[0]?.[1];
+    expect(init?.body).toBeInstanceOf(FormData);
+    expect(new Headers(init?.headers).get("content-type")).toBeNull();
+  });
+
+  it("converts plain objects to FormData when bodyType is form-data", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ url: "/files/avatar.png" }));
+    const api = createMicroApi({ name: "main", baseUrl: "/api", fetcher });
+    const files = api.resource("files", {
+      upload: api.post<{ url: string }, { file: Blob; filename: string; tags: string[]; meta: { kind: string } }>("/files", {
+        bodyType: "form-data",
+        body: ({ file, filename, tags, meta }) => ({
+          file,
+          filename,
+          tags,
+          meta,
+        }),
+      }),
+    });
+    const file = new Blob(["hello"], { type: "text/plain" });
+
+    await files.upload.fn({
+      file,
+      filename: "hello.txt",
+      tags: ["a", "b"],
+      meta: { kind: "avatar" },
+    });
+
+    const init = fetcher.mock.calls[0]?.[1];
+    const formData = init?.body;
+
+    expect(formData).toBeInstanceOf(FormData);
+    expect(new Headers(init?.headers).get("content-type")).toBeNull();
+    expect((formData as FormData).get("filename")).toBe("hello.txt");
+    expect((formData as FormData).getAll("tags")).toEqual(["a", "b"]);
+    expect((formData as FormData).get("meta")).toBe(JSON.stringify({ kind: "avatar" }));
+  });
+
   it("merges custom headers", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
     const api = createMicroApi({
@@ -144,7 +198,9 @@ describe("fetch client", () => {
     const refresh = vi.fn().mockResolvedValue({ accessToken: "new-token" });
     const tokenProvider = createTokenProvider({
       getAccessToken: () => "old-token",
-      refresh,
+      refresh: {
+        fn: refresh,
+      },
     });
     const api = createMicroApi({ name: "main", baseUrl: "/api", fetcher, tokenProvider });
     const auth = api.resource("auth", {
@@ -270,8 +326,10 @@ describe("fetch client", () => {
     const refresh = vi.fn().mockResolvedValue({ accessToken: "new-token" });
     const tokenProvider = createTokenProvider({
       getAccessToken: () => "old-token",
-      refresh,
-      getAccessTokenFromRefreshResult: (tokens: { accessToken: string }) => tokens.accessToken,
+      refresh: {
+        fn: refresh,
+        selectAccessToken: (tokens: { accessToken: string }) => tokens.accessToken,
+      },
     });
     const api = createMicroApi({
       name: "main",
@@ -306,8 +364,10 @@ describe("fetch client", () => {
     );
     const tokenProvider = createTokenProvider({
       getAccessToken: () => "old-token",
-      refresh,
-      getAccessTokenFromRefreshResult: (tokens) => tokens.accessToken,
+      refresh: {
+        fn: refresh,
+        selectAccessToken: (tokens) => tokens.accessToken,
+      },
     });
     const api = createMicroApi({ name: "main", baseUrl: "/api", fetcher, tokenProvider });
     const users = api.resource("users", {

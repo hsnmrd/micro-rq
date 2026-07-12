@@ -6,12 +6,12 @@ export type VariablesArgs<TVariables> = [TVariables] extends [void]
   ? []
   : [variables: TVariables];
 
-export type QueryBuildResult<TData> = {
+export type QueryConfig<TData> = {
   queryKey: QueryKey;
   queryFn: QueryFunction<TData, QueryKey>;
 };
 
-export type MutationBuildResult<TData, TVariables> = {
+export type MutationConfig<TData, TVariables> = {
   mutationFn: MutationFunction<TData, TVariables>;
 };
 
@@ -19,12 +19,12 @@ export type QueryEndpoint<TData, TVariables = void> = {
   baseKey: () => QueryKey;
   key: (...args: VariablesArgs<TVariables>) => QueryKey;
   fn: (...args: VariablesArgs<TVariables>) => () => Promise<TData>;
-  build: (...args: VariablesArgs<TVariables>) => QueryBuildResult<TData>;
+  toQuery: (...args: VariablesArgs<TVariables>) => QueryConfig<TData>;
 };
 
 export type MutationEndpoint<TData, TVariables = void> = {
   fn: (...args: VariablesArgs<TVariables>) => Promise<TData>;
-  build: () => MutationBuildResult<TData, TVariables>;
+  toMutation: () => MutationConfig<TData, TVariables>;
 };
 
 export type PendingQueryEndpoint<TData, TVariables> = {

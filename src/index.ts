@@ -5,19 +5,21 @@ export { MicroApiError, MicroAuthRequiredError } from "./core/errors";
 export type {
   BuiltResource,
   MutationEndpoint,
-  MutationBuildResult,
+  MutationConfig,
   QueryEndpoint,
-  QueryBuildResult,
+  QueryConfig,
   VariablesArgs,
 } from "./core/endpoint-types";
 export type {
   AuthMode,
+  BodyType,
   MaybePromise,
   CreateMicroApiConfig,
   HttpMethod,
   MicroRequestContext,
   PathBuilder,
   RequestMappers,
+  RefreshTokenConfig,
   TokenProvider,
   TokenProviderConfig,
 } from "./core/types";

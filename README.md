@@ -1,14 +1,14 @@
-# micro-rq
+# tanstack-rest-query
 
-Tiny REST resource builder for TanStack Query.
+Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.
 
-`micro-rq` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
+`tanstack-rest-query` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
 
 You still use TanStack Query normally:
 
 ```ts
 useQuery({
-  ...users.detail.build(userId),
+  ...users.detail.toQuery(userId),
   enabled: !!userId,
   staleTime: 60_000,
   select: (user) => user.name,
@@ -17,7 +17,7 @@ useQuery({
 
 ```ts
 useMutation({
-  ...users.create.build(),
+  ...users.create.toMutation(),
   onSuccess: () => {
     queryClient.invalidateQueries({
       queryKey: users.list.baseKey(),
@@ -28,12 +28,12 @@ useMutation({
 
 ## What It Does Not Do
 
-`micro-rq` does not generate React hooks, wrap `useQuery`, wrap `useMutation`, implement caching, or hide TanStack Query options. `build()` never accepts React Query options such as `enabled`, `staleTime`, `retry`, `select`, or `onSuccess`.
+`tanstack-rest-query` does not generate React hooks, wrap `useQuery`, wrap `useMutation`, implement caching, or hide TanStack Query options. `toQuery()` and `toMutation()` never accept React Query options such as `enabled`, `staleTime`, `retry`, `select`, or `onSuccess`.
 
 ## Installation
 
 ```sh
-npm install micro-rq @tanstack/react-query
+npm install tanstack-rest-query @tanstack/react-query
 ```
 
 `@tanstack/react-query` is a peer dependency.
@@ -41,7 +41,7 @@ npm install micro-rq @tanstack/react-query
 ## Basic Usage
 
 ```ts
-import { createMicroApi } from "micro-rq";
+import { createMicroApi } from "tanstack-rest-query";
 
 const mainApi = createMicroApi({
   name: "main",
@@ -72,21 +72,21 @@ export const users = mainApi.resource("users", {
 
 ```ts
 const usersQuery = useQuery({
-  ...users.list.build({ page: 1 }),
+  ...users.list.toQuery({ page: 1 }),
   staleTime: 60_000,
 });
 ```
 
 ```ts
 const userQuery = useQuery({
-  ...users.detail.build(userId),
+  ...users.detail.toQuery(userId),
   enabled: !!userId,
 });
 ```
 
 ```ts
 const createUser = useMutation({
-  ...users.create.build(),
+  ...users.create.toMutation(),
   onSuccess: () => {
     queryClient.invalidateQueries({
       queryKey: users.list.baseKey(),
@@ -137,34 +137,38 @@ invoices.list.key();
 ## Token Provider
 
 ```ts
-import { createMicroApi, createTokenProvider } from "micro-rq";
+import { createMicroApi, createTokenProvider } from "tanstack-rest-query";
+
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+const publicApi = createMicroApi({
+  name: "public",
+  baseUrl: "https://auth.example.com",
+});
+
+const auth = publicApi.resource("auth", {
+  refresh: publicApi.post<AuthTokens, { refreshToken?: string | null }>("/refresh", {
+    authMode: "none",
+  }),
+});
 
 const authProvider = createTokenProvider({
   getAccessToken: () => localStorage.getItem("accessToken"),
   getRefreshToken: () => localStorage.getItem("refreshToken"),
-  refresh: async ({ refreshToken }) => {
-    const response = await fetch("https://auth.example.com/refresh", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to refresh token");
-    }
-
-    return response.json() as Promise<{ accessToken: string; refreshToken: string }>;
-  },
-  getAccessTokenFromRefreshResult: (tokens) => tokens.accessToken,
-  onRefreshSuccess: (tokens) => {
-    localStorage.setItem("accessToken", tokens.accessToken);
-    localStorage.setItem("refreshToken", tokens.refreshToken);
-  },
-  onRefreshFailed: () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+  refresh: {
+    fn: ({ refreshToken }) => auth.refresh.fn({ refreshToken }),
+    selectAccessToken: (tokens) => tokens.accessToken,
+    onSuccess: (tokens) => {
+      localStorage.setItem("accessToken", tokens.accessToken);
+      localStorage.setItem("refreshToken", tokens.refreshToken);
+    },
+    onError: () => {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+    },
   },
 });
 
@@ -292,7 +296,7 @@ Query serialization rules:
 Failed responses throw `MicroApiError`.
 
 ```ts
-import { MicroApiError } from "micro-rq";
+import { MicroApiError } from "tanstack-rest-query";
 
 try {
   await users.detail.fn("user-1")();
@@ -325,24 +329,24 @@ const api = createMicroApi({
 });
 ```
 
-`onError` is called for failed HTTP responses, missing required auth, refresh failures, and network errors. If `onError` throws, `micro-rq` preserves the original request error.
+`onError` is called for failed HTTP responses, missing required auth, refresh failures, and network errors. If `onError` throws, `tanstack-rest-query` preserves the original request error.
 
 ## TypeScript
 
 Inputs and outputs are inferred from endpoint definitions.
 
 ```ts
-const q = users.detail.build("user-1");
+const q = users.detail.toQuery("user-1");
 // q.queryFn returns Promise<User>
 
-const m = users.create.build();
+const m = users.create.toMutation();
 // m.mutationFn accepts CreateUserDto and returns Promise<User>
 ```
 
 These fail type checking:
 
 ```ts
-users.detail.build(123);
+users.detail.toQuery(123);
 users.create.fn({ wrong: "field" });
 ```
 
@@ -353,7 +357,7 @@ const me = api.resource("me", {
   get: api.get<User>("/me"),
 });
 
-me.get.build();
+me.get.toQuery();
 me.get.key();
 me.get.fn();
 ```
@@ -382,8 +386,10 @@ Creates an API client with:
 - `api.patch<TData, TVariables>()`
 - `api.delete<TData, TVariables>()`
 - `api.resource(resourceName, endpoints)`
+- `api.extend(overrides)`
 
 GET endpoints become query endpoints. POST, PUT, PATCH, and DELETE endpoints become mutation endpoints.
+Use `api.extend(overrides)` to reuse a client config and override only selected fields, such as `name` or `fetcher`.
 
 ### Query Endpoint
 
@@ -391,10 +397,10 @@ GET endpoints become query endpoints. POST, PUT, PATCH, and DELETE endpoints bec
 users.detail.baseKey();
 users.detail.key("user-1");
 users.detail.fn("user-1");
-users.detail.build("user-1");
+users.detail.toQuery("user-1");
 ```
 
-`build()` returns only:
+`toQuery()` returns only:
 
 ```ts
 {
@@ -407,10 +413,10 @@ users.detail.build("user-1");
 
 ```ts
 users.create.fn({ name: "John", email: "john@example.com" });
-users.create.build();
+users.create.toMutation();
 ```
 
-`build()` returns only:
+`toMutation()` returns only:
 
 ```ts
 {
@@ -418,7 +424,7 @@ users.create.build();
 }
 ```
 
-Mutation variables are passed to `mutate()`, not to `build()`.
+Mutation variables are passed to `mutate()`, not to `toMutation()`.
 
 ### `createTokenProvider(config)`
 
@@ -426,10 +432,12 @@ Mutation variables are passed to `mutate()`, not to `build()`.
 type TokenProviderConfig<TTokens = unknown> = {
   getAccessToken: () => string | null | Promise<string | null>;
   getRefreshToken?: () => string | null | Promise<string | null>;
-  refresh?: (input: { refreshToken?: string | null }) => Promise<TTokens>;
-  getAccessTokenFromRefreshResult?: (tokens: TTokens) => string;
-  onRefreshSuccess?: (tokens: TTokens) => void | Promise<void>;
-  onRefreshFailed?: (error: unknown) => void | Promise<void>;
+  refresh?: {
+    fn: (input: { refreshToken?: string | null }) => Promise<TTokens>;
+    selectAccessToken?: (tokens: TTokens) => string;
+    onSuccess?: (tokens: TTokens) => void | Promise<void>;
+    onError?: (error: unknown) => void | Promise<void>;
+  };
 };
 ```
 

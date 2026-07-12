@@ -39,18 +39,32 @@ const auth = api.resource("auth", {
   }),
 });
 
-const detail = users.detail.build("user-1");
+const uploadApi = api.extend({
+  name: "uploads",
+  fetcher: async () => new Response("{}"),
+});
+
+const uploads = uploadApi.resource("uploads", {
+  avatar: uploadApi.post<{ url: string }, { file: File }>("/uploads/avatar", {
+    bodyType: "form-data",
+    body: ({ file }) => ({
+      avatar: file,
+    }),
+  }),
+});
+
+const detail = users.detail.toQuery("user-1");
 type DetailResult = Awaited<ReturnType<typeof detail.queryFn>>;
 type _QueryOutput = Expect<Equal<DetailResult, User>>;
 
-users.list.build({ page: 1 });
+users.list.toQuery({ page: 1 });
 // @ts-expect-error query input is inferred
-users.list.build({ wrong: 1 });
+users.list.toQuery({ wrong: 1 });
 
 // @ts-expect-error wrong detail input type fails
-users.detail.build(123);
+users.detail.toQuery(123);
 
-const mutation = users.create.build();
+const mutation = users.create.toMutation();
 type MutationVariables = Parameters<typeof mutation.mutationFn>[0];
 type MutationResult = Awaited<ReturnType<typeof mutation.mutationFn>>;
 type _MutationVariables = Expect<Equal<MutationVariables, CreateUserDto>>;
@@ -60,17 +74,18 @@ users.create.fn({ name: "John" });
 // @ts-expect-error mutation variables are inferred
 users.create.fn({ wrong: "field" });
 
-me.get.build();
+me.get.toQuery();
 me.get.key();
 me.get.fn();
-auth.me.build();
+auth.me.toQuery();
 auth.login.fn({ name: "John" });
+uploads.avatar.fn({ file: new File(["avatar"], "avatar.png") });
 
 useQuery({
-  ...users.detail.build("user-1"),
+  ...users.detail.toQuery("user-1"),
   select: (user) => user.name,
 });
 
 useMutation({
-  ...users.create.build(),
+  ...users.create.toMutation(),
 });

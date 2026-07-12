@@ -5,7 +5,7 @@ process.env.TMP = "/tmp";
 process.env.TEMP = "/tmp";
 
 export default defineConfig({
-  cacheDir: "/tmp/micro-rq-vitest-cache",
+  cacheDir: "/tmp/tanstack-rest-query-vitest-cache",
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],

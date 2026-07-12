@@ -69,6 +69,7 @@ async function buildFetchArgs<TVariables>(
       : input.mappers && "body" in input.mappers
         ? input.mappers.body?.(input.variables)
         : input.variables;
+  const bodyType = input.mappers?.bodyType ?? "json";
   const headers = mergeHeaders(baseHeaders, mappedHeaders, authHeaders);
   const init: RequestInit = {
     method: input.method,
@@ -76,11 +77,18 @@ async function buildFetchArgs<TVariables>(
   };
 
   if (body !== undefined) {
-    if (!headers.has("content-type")) {
+    if (bodyType === "form-data") {
+      init.body = toFormData(body);
+      return [url, init];
+    }
+
+    const isRawBody = isBodyInit(body);
+
+    if (!isRawBody && !headers.has("content-type")) {
       headers.set("content-type", "application/json");
     }
 
-    init.body = isBodyInit(body) ? body : JSON.stringify(body);
+    init.body = isRawBody ? body : JSON.stringify(body);
   }
 
   return [url, init];
@@ -138,4 +146,61 @@ function isInstanceOfAvailableGlobal<TName extends keyof typeof globalThis>(
 ): boolean {
   const constructor = globalThis[name];
   return typeof constructor === "function" && value instanceof constructor;
+}
+
+function toFormData(body: unknown): FormData {
+  if (isInstanceOfAvailableGlobal(body, "FormData")) {
+    return body as FormData;
+  }
+
+  if (!isPlainObject(body)) {
+    throw new Error('FormData bodyType requires a plain object or FormData instance.');
+  }
+
+  const formData = new FormData();
+
+  for (const [key, value] of Object.entries(body)) {
+    appendFormDataValue(formData, key, value);
+  }
+
+  return formData;
+}
+
+function appendFormDataValue(formData: FormData, key: string, value: unknown): void {
+  if (value === undefined) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      appendFormDataValue(formData, key, item);
+    }
+    return;
+  }
+
+  if (value === null) {
+    formData.append(key, "null");
+    return;
+  }
+
+  if (isInstanceOfAvailableGlobal(value, "Blob")) {
+    formData.append(key, value as Blob);
+    return;
+  }
+
+  if (value instanceof Date) {
+    formData.append(key, value.toISOString());
+    return;
+  }
+
+  if (typeof value === "object") {
+    formData.append(key, JSON.stringify(value));
+    return;
+  }
+
+  formData.append(key, String(value));
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && !isBodyInit(value);
 }

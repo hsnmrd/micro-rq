@@ -1,7 +1,7 @@
 {
-  "name": "micro-rq",
+  "name": "tanstack-rest-query",
   "version": "0.1.0",
-  "description": "Tiny REST resource builder for TanStack Query.",
+  "description": "Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -29,6 +29,10 @@
     "tanstack-query",
     "react-query",
     "rest",
+    "api-client",
+    "query",
+    "resource",
+    "builder",
     "fetch",
     "typescript"
   ],

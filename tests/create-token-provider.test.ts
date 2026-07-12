@@ -3,13 +3,15 @@ import { createTokenProvider } from "../src";
 
 describe("createTokenProvider", () => {
   it("returns access tokens and coordinates refresh callbacks", async () => {
-    const onRefreshSuccess = vi.fn();
+    const onSuccess = vi.fn();
     const provider = createTokenProvider({
       getAccessToken: () => "old-token",
       getRefreshToken: () => "refresh-token",
-      refresh: async ({ refreshToken }) => ({ accessToken: "new-token", refreshToken }),
-      getAccessTokenFromRefreshResult: (tokens) => tokens.accessToken,
-      onRefreshSuccess,
+      refresh: {
+        fn: async ({ refreshToken }) => ({ accessToken: "new-token", refreshToken }),
+        selectAccessToken: (tokens) => tokens.accessToken,
+        onSuccess,
+      },
     });
 
     expect(await provider.getAccessToken()).toBe("old-token");
@@ -18,21 +20,23 @@ describe("createTokenProvider", () => {
       refreshToken: "refresh-token",
     });
     expect(await provider.getAccessToken()).toBe("new-token");
-    expect(onRefreshSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledOnce();
   });
 
-  it("calls onRefreshFailed when refresh fails", async () => {
-    const onRefreshFailed = vi.fn();
+  it("calls onError when refresh fails", async () => {
+    const onError = vi.fn();
     const error = new Error("nope");
     const provider = createTokenProvider({
       getAccessToken: () => null,
-      refresh: async () => {
-        throw error;
+      refresh: {
+        fn: async () => {
+          throw error;
+        },
+        onError,
       },
-      onRefreshFailed,
     });
 
     await expect(provider.refreshAccessToken()).rejects.toBe(error);
-    expect(onRefreshFailed).toHaveBeenCalledWith(error);
+    expect(onError).toHaveBeenCalledWith(error);
   });
 });

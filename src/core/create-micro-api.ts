@@ -1,4 +1,5 @@
 import type {
+  BuiltResource,
   PendingMutationEndpoint,
   PendingQueryEndpoint,
   ResourceDefinition,
@@ -7,9 +8,38 @@ import { createFetchClient } from "./fetch-client";
 import { createPendingEndpoint, createResource } from "./resource";
 import type { CreateMicroApiConfig, PathBuilder, RequestMappers } from "./types";
 
-export type MicroApi = ReturnType<typeof createMicroApi>;
+type QueryFactory = {
+  <TData>(path: string): PendingQueryEndpoint<TData, void>;
+  <TData>(path: string, mappers: RequestMappers<void>): PendingQueryEndpoint<TData, void>;
+  <TData, TVariables>(
+    path: PathBuilder<TVariables>,
+    mappers?: RequestMappers<TVariables>,
+  ): PendingQueryEndpoint<TData, TVariables>;
+};
 
-export function createMicroApi(config: CreateMicroApiConfig) {
+type MutationFactory = {
+  <TData>(path: string): PendingMutationEndpoint<TData, void>;
+  <TData>(path: string, mappers: RequestMappers<void>): PendingMutationEndpoint<TData, void>;
+  <TData, TVariables>(
+    path: PathBuilder<TVariables>,
+    mappers?: RequestMappers<TVariables>,
+  ): PendingMutationEndpoint<TData, TVariables>;
+};
+
+export type MicroApi = {
+  get: QueryFactory;
+  post: MutationFactory;
+  put: MutationFactory;
+  patch: MutationFactory;
+  delete: MutationFactory;
+  extend: (overrides: Partial<CreateMicroApiConfig>) => MicroApi;
+  resource: <TDefinition extends ResourceDefinition>(
+    resourceName: string,
+    definition: TDefinition,
+  ) => BuiltResource<TDefinition>;
+};
+
+export function createMicroApi(config: CreateMicroApiConfig): MicroApi {
   const fetchClient = createFetchClient(config);
 
   return {
@@ -18,6 +48,11 @@ export function createMicroApi(config: CreateMicroApiConfig) {
     put: createMutationFactory("PUT"),
     patch: createMutationFactory("PATCH"),
     delete: createMutationFactory("DELETE"),
+    extend: (overrides: Partial<CreateMicroApiConfig>) =>
+      createMicroApi({
+        ...config,
+        ...overrides,
+      }),
     resource: <TDefinition extends ResourceDefinition>(resourceName: string, definition: TDefinition) =>
       createResource(config.name, resourceName, definition, fetchClient),
   };
