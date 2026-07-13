@@ -1,72 +1,59 @@
-import { useQueries } from "@tanstack/react-query";
 import Link from "next/link";
+import { PageHeader, SiteShell } from "./_components/site-shell";
 
-export default function LoginForm() {
+const examples = [
+  {
+    href: "/products",
+    title: "Products",
+    body: "SSR initial data, pagination, search, category filters, generated keys, and product detail links.",
+  },
+  {
+    href: "/products/1",
+    title: "Product detail",
+    body: "SEO-friendly server rendering and metadata from a typed REST resource.",
+  },
+  {
+    href: "/posts",
+    title: "Posts",
+    body: "Infinite scroll using the posts service instead of duplicating the products example.",
+  },
+  {
+    href: "/login",
+    title: "Login",
+    body: "DummyJSON auth login writes tokens to cookies, then redirects to the protected account page.",
+  },
+  {
+    href: "/account",
+    title: "Protected account",
+    body: "Server redirect when no token exists, plus automatic refresh through the token provider on 401.",
+  },
+  {
+    href: "/mutations",
+    title: "Mutations and upload",
+    body: "POST, PUT, PATCH, DELETE, invalidation, FormData upload, and multiple clients.",
+  },
+  {
+    href: "/errors",
+    title: "Errors",
+    body: "MicroApiError, MicroAuthRequiredError, and global onError behavior.",
+  },
+];
 
-  const {} = useQueries([])
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      <section className="w-full max-w-md p-8">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-amber-500 text-lg font-bold text-white">
-            MRQ
-          </div>
-
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Welcome
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-400">
-            Sign in to continue to your account
-          </p>
-        </div>
-
-        <form className="space-y-5">
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-medium text-slate-200"
-            >
-              Email address
-            </label>
-
-            <input
-              id="username"
-              type="text"
-              autoComplete="billing bday-day webauthn"
-              placeholder="emilys"
-              className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15"
-            />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label
-                htmlFor="password"
-                className="text-sm font-medium text-slate-200"
-              >
-                Password
-              </label>
-            </div>
-
-            <input
-              id="password"
-              type="password"
-              autoComplete="off"
-              placeholder="emilyspass"
-              className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white outline-none transition placeholder:text-slate-600"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-teal-800 px-4 py-3 font-semibold text-white transition hover:bg-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-500/30"
-          >
-            Login
-          </button>
-        </form>
+    <SiteShell>
+      <PageHeader
+        title="Structured Next.js example"
+        description="Each page demonstrates one real workflow instead of placing every package feature into a single screen."
+      />
+      <section className="mx-auto grid max-w-7xl gap-4 px-5 py-6 md:grid-cols-2 xl:grid-cols-3">
+        {examples.map((example) => (
+          <Link className="rounded-lg border border-neutral-200 bg-white p-5 hover:border-teal-600" href={example.href} key={example.href}>
+            <h2 className="font-semibold">{example.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">{example.body}</p>
+          </Link>
+        ))}
       </section>
-    </main>
+    </SiteShell>
   );
 }

@@ -1,4 +1,4 @@
-export { auth } from "./auth";
+export { auth, authenticatedAuth } from "./auth";
 export { carts } from "./carts";
 export { mockHttp } from "./http";
 export { posts } from "./posts";

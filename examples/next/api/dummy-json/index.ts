@@ -3,7 +3,7 @@ import { tokenProvider } from "./token-provider";
 
 const baseUrl = "https://dummyjson.com";
 
-export const apiDummy = createMicroApi({
+export const publicApiDummy = createMicroApi({
   baseUrl,
   name: "dummy-json-public",
   tokenProvider,
@@ -19,4 +19,12 @@ export const apiDummy = createMicroApi({
   headers: () => ({
     "x-example-client": "micro-rq-next",
   }),
+});
+
+export const apiDummy = publicApiDummy.extend({
+  name: "dummy-json",
+});
+
+export const httpApiDummy = publicApiDummy.extend({
+  name: "dummy-json-http",
 });
