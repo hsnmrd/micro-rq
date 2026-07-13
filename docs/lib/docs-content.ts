@@ -1858,12 +1858,68 @@ type MicroApi = {
   {
     id: "example-app",
     title: "Example app",
-    body: ["The repository includes a Next.js example app using DummyJSON."],
+    body: [
+      "The repository includes a structured Next.js App Router example app using DummyJSON.",
+      "It demonstrates server prefetch/hydration, product list/detail pages, login, protected routes, automatic refresh-token retry, infinite posts, mutations, upload, and error handling.",
+    ],
     code: [
       {
-        code: `cd examples/react-next
+        code: `cd examples/next
 npm install
 npm run dev`,
+      },
+    ],
+  },
+  {
+    id: "next-ssr-hydration",
+    title: "Next.js SSR hydration",
+    body: [
+      "In Server Components, pass the generated query config directly to TanStack Query's `prefetchQuery`.",
+      "Then wrap the Client Component with `HydrationBoundary`. The client can call `useQuery` with the same endpoint config and read the prefetched data from the cache.",
+      "This is usually better than manually passing `initialData` props because the data is stored under the exact generated query key.",
+    ],
+    code: [
+      {
+        code: `// app/products/page.tsx
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+import { ProductsClient } from "./products-client";
+
+export default async function ProductsPage() {
+  const queryClient = new QueryClient();
+  const params = {
+    limit: 12,
+    skip: 0,
+  };
+
+  await queryClient.prefetchQuery(products.list.toQuery(params));
+  await queryClient.prefetchQuery(products.categoryList.toQuery());
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ProductsClient params={params} />
+    </HydrationBoundary>
+  );
+}`,
+      },
+      {
+        code: `// app/products/products-client.tsx
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+
+export function ProductsClient({ params }: { params: { limit: number; skip: number } }) {
+  const productsQuery = useQuery({
+    ...products.list.toQuery(params),
+  });
+
+  const categoriesQuery = useQuery({
+    ...products.categoryList.toQuery(),
+  });
+
+  // Render productsQuery.data and categoriesQuery.data.
+}`,
       },
     ],
   },
@@ -1966,7 +2022,7 @@ export const pages: DocPage[] = [
     slug: "reference",
     title: "API Reference",
     description: "Review TypeScript behavior, public exports, core config shapes, and the example app.",
-    sectionIds: ["typescript", "exports", "api-reference", "client-complete-example", "example-app"],
+    sectionIds: ["typescript", "exports", "api-reference", "client-complete-example", "next-ssr-hydration", "example-app"],
   },
 ];
 

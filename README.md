@@ -442,6 +442,54 @@ type TokenProviderConfig<TTokens = unknown> = {
 };
 ```
 
+## Next.js SSR Hydration
+
+Use the generated query config directly with TanStack Query's `prefetchQuery` in Server Components, then hydrate the cache for Client Components.
+
+```tsx
+// app/products/page.tsx
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+import { ProductsClient } from "./products-client";
+
+export default async function ProductsPage() {
+  const queryClient = new QueryClient();
+  const params = {
+    limit: 12,
+    skip: 0,
+  };
+
+  await queryClient.prefetchQuery(products.list.toQuery(params));
+  await queryClient.prefetchQuery(products.categoryList.toQuery());
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ProductsClient params={params} />
+    </HydrationBoundary>
+  );
+}
+```
+
+```tsx
+// app/products/products-client.tsx
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+
+export function ProductsClient({ params }: { params: { limit: number; skip: number } }) {
+  const productsQuery = useQuery({
+    ...products.list.toQuery(params),
+  });
+
+  const categoriesQuery = useQuery({
+    ...products.categoryList.toQuery(),
+  });
+
+  // Render productsQuery.data and categoriesQuery.data.
+}
+```
+
 ## Publishing
 
 The package builds ESM, CJS, and type declarations with `tsup`.
@@ -458,19 +506,17 @@ The published files are limited to `dist`, `README.md`, and `LICENSE`.
 
 ## Next.js App Router Example
 
-The example app is in `examples/react-vite`. Despite the historical folder name, it is a Next.js App Router app.
+The example app is in `examples/next`.
 
 ```sh
-cd examples/react-vite
+cd examples/next
 npm install
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-The example uses one `createMicroApi` client with `baseUrl: "https://dummyjson.com"`.
-It demonstrates public REST resources for users and carts, plus DummyJSON auth endpoints
-for login, authenticated `/auth/me`, and refresh-token flow testing.
+The example uses DummyJSON resources with public and authenticated clients. It demonstrates server prefetch/hydration, product list/detail pages, login, protected routes, automatic refresh-token retry, infinite posts, mutations, upload, and error handling.
 
 ## Docs App
 
