@@ -334,6 +334,7 @@ const api = createMicroApi({
 ## TypeScript
 
 Inputs and outputs are inferred from endpoint definitions.
+The returned query and mutation config types are structural, so they stay assignable to TanStack Query even when a monorepo or linked package has more than one physical `@tanstack/react-query` install.
 
 ```ts
 const q = users.detail.toQuery("user-1");

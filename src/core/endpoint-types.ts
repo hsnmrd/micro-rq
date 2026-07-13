@@ -1,5 +1,5 @@
-import type { QueryFunction, QueryKey, MutationFunction } from "@tanstack/react-query";
 import type { FetchClient } from "./fetch-client";
+import type { MicroQueryKey } from "./keys";
 import type { HttpMethod, PathBuilder, RequestMappers } from "./types";
 
 export type VariablesArgs<TVariables> = [TVariables] extends [void]
@@ -7,17 +7,17 @@ export type VariablesArgs<TVariables> = [TVariables] extends [void]
   : [variables: TVariables];
 
 export type QueryConfig<TData> = {
-  queryKey: QueryKey;
-  queryFn: QueryFunction<TData, QueryKey>;
+  queryKey: MicroQueryKey;
+  queryFn: () => Promise<TData>;
 };
 
 export type MutationConfig<TData, TVariables> = {
-  mutationFn: MutationFunction<TData, TVariables>;
+  mutationFn: (...args: VariablesArgs<TVariables>) => Promise<TData>;
 };
 
 export type QueryEndpoint<TData, TVariables = void> = {
-  baseKey: () => QueryKey;
-  key: (...args: VariablesArgs<TVariables>) => QueryKey;
+  baseKey: () => MicroQueryKey;
+  key: (...args: VariablesArgs<TVariables>) => MicroQueryKey;
   fn: (...args: VariablesArgs<TVariables>) => () => Promise<TData>;
   toQuery: (...args: VariablesArgs<TVariables>) => QueryConfig<TData>;
 };

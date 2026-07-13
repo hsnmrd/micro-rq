@@ -1796,6 +1796,7 @@ try {
     body: [
       "Endpoint generics flow into query functions, mutation functions, and direct request functions.",
       "No-variable endpoints expose zero-argument helpers, so callers do not need to pass `undefined`.",
+      "`toQuery()` and `toMutation()` return structural config types, so they remain assignable to TanStack Query even in monorepos or linked examples with more than one physical `@tanstack/react-query` install.",
     ],
     code: [
       {
