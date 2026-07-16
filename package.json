@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.",
   "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hsnmrd/tanstack-rest-query.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hsnmrd/tanstack-rest-query/issues"
+  },
+  "homepage": "https://github.com/hsnmrd/tanstack-rest-query#readme",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,6 +25,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -37,6 +47,9 @@
     "typescript"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "peerDependencies": {
     "@tanstack/react-query": "^5.0.0"
   },

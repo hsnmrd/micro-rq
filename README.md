@@ -499,10 +499,11 @@ npm run typecheck
 npm run test
 npm run test:types
 npm run build
+npm pack --dry-run
 npm publish
 ```
 
-The published files are limited to `dist`, `README.md`, and `LICENSE`.
+Before publishing, inspect the `npm pack --dry-run` file list and package size. The published files are limited to `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`.
 
 ## Next.js App Router Example
 
