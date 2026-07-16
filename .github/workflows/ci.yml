@@ -43,10 +43,6 @@ jobs:
     name: Next.js Example
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: examples/next
-
     env:
       NEXT_TELEMETRY_DISABLED: 1
 
@@ -59,10 +55,20 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: examples/next/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            examples/next/package-lock.json
 
-      - name: Install
+      - name: Install package dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build package
+        run: npm run build
+
+      - name: Install example dependencies
+        working-directory: examples/next
+        run: npm ci
+
+      - name: Build example
+        working-directory: examples/next
         run: npm run build
