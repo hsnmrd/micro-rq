@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "tanstack-rest-query DummyJSON Example",
-  description: "A complete Next.js example for tanstack-rest-query with DummyJSON.",
+  title: "micro-rq DummyJSON Example",
+  description: "A complete Next.js example for micro-rq with DummyJSON.",
 };
 
 export default function RootLayout({

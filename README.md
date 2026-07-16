@@ -1,8 +1,16 @@
-# tanstack-rest-query
+# micro-rq
 
 Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.
 
-`tanstack-rest-query` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
+`micro-rq` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
+
+Use it when you want one typed REST resource definition to produce:
+
+- stable TanStack Query keys
+- request functions for direct calls
+- `useQuery`-ready query configs
+- `useMutation`-ready mutation configs
+- shared auth, refresh, headers, and error handling
 
 You still use TanStack Query normally:
 
@@ -28,20 +36,20 @@ useMutation({
 
 ## What It Does Not Do
 
-`tanstack-rest-query` does not generate React hooks, wrap `useQuery`, wrap `useMutation`, implement caching, or hide TanStack Query options. `toQuery()` and `toMutation()` never accept React Query options such as `enabled`, `staleTime`, `retry`, `select`, or `onSuccess`.
+`micro-rq` does not generate React hooks, wrap `useQuery`, wrap `useMutation`, implement caching, or hide TanStack Query options. `toQuery()` and `toMutation()` never accept React Query options such as `enabled`, `staleTime`, `retry`, `select`, or `onSuccess`.
 
 ## Installation
 
 ```sh
-npm install tanstack-rest-query @tanstack/react-query
+npm install micro-rq @tanstack/react-query
 ```
 
 `@tanstack/react-query` is a peer dependency.
 
-## Basic Usage
+## Quick Start
 
 ```ts
-import { createMicroApi } from "tanstack-rest-query";
+import { createMicroApi } from "micro-rq";
 
 const mainApi = createMicroApi({
   name: "main",
@@ -137,7 +145,7 @@ invoices.list.key();
 ## Token Provider
 
 ```ts
-import { createMicroApi, createTokenProvider } from "tanstack-rest-query";
+import { createMicroApi, createTokenProvider } from "micro-rq";
 
 type AuthTokens = {
   accessToken: string;
@@ -296,7 +304,7 @@ Query serialization rules:
 Failed responses throw `MicroApiError`.
 
 ```ts
-import { MicroApiError } from "tanstack-rest-query";
+import { MicroApiError } from "micro-rq";
 
 try {
   await users.detail.fn("user-1")();
@@ -329,7 +337,7 @@ const api = createMicroApi({
 });
 ```
 
-`onError` is called for failed HTTP responses, missing required auth, refresh failures, and network errors. If `onError` throws, `tanstack-rest-query` preserves the original request error.
+`onError` is called for failed HTTP responses, missing required auth, refresh failures, and network errors. If `onError` throws, `micro-rq` preserves the original request error.
 
 ## TypeScript
 
@@ -364,6 +372,15 @@ me.get.fn();
 ```
 
 ## API Reference
+
+## Public API Surface
+
+The root package export is the public API. Treat changes to these exports as SemVer-relevant:
+
+- Runtime exports: `createMicroApi`, `createTokenProvider`, `MicroApiError`, `MicroAuthRequiredError`
+- API/client types: `MicroApi`, `CreateMicroApiConfig`, `MicroRequestContext`, `TokenProvider`, `TokenProviderConfig`, `RefreshTokenConfig`
+- Endpoint/resource types: `BuiltResource`, `QueryEndpoint`, `MutationEndpoint`, `QueryConfig`, `MutationConfig`, `MicroQueryKey`, `VariablesArgs`
+- Request helper types: `AuthMode`, `BodyType`, `HttpMethod`, `MaybePromise`, `PathBuilder`, `RequestMappers`
 
 ### `createMicroApi(config)`
 
@@ -501,6 +518,12 @@ npm run test:types
 npm run build
 npm pack --dry-run
 npm publish
+```
+
+Or run the full local release check:
+
+```sh
+npm run release:check
 ```
 
 Before publishing, inspect the `npm pack --dry-run` file list and package size. The published files are limited to `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`.

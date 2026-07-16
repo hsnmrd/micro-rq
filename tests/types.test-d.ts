@@ -1,8 +1,51 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createMicroApi } from "../src";
+import type {
+  AuthMode,
+  BodyType,
+  BuiltResource,
+  CreateMicroApiConfig,
+  HttpMethod,
+  MaybePromise,
+  MicroApi,
+  MicroQueryKey,
+  MicroRequestContext,
+  MutationConfig,
+  MutationEndpoint,
+  PathBuilder,
+  QueryConfig,
+  QueryEndpoint,
+  RefreshTokenConfig,
+  RequestMappers,
+  TokenProvider,
+  TokenProviderConfig,
+  VariablesArgs,
+} from "../src";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type Expect<T extends true> = T;
+
+type PublicApiSmokeTest = [
+  AuthMode,
+  BodyType,
+  BuiltResource<Record<string, never>>,
+  CreateMicroApiConfig,
+  HttpMethod,
+  MaybePromise<void>,
+  MicroApi,
+  MicroQueryKey,
+  MicroRequestContext,
+  MutationConfig<unknown, void>,
+  MutationEndpoint<unknown, void>,
+  PathBuilder<void>,
+  QueryConfig<unknown>,
+  QueryEndpoint<unknown, void>,
+  RefreshTokenConfig,
+  RequestMappers<void>,
+  TokenProvider,
+  TokenProviderConfig,
+  VariablesArgs<void>,
+];
 
 type User = {
   id: string;

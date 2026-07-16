@@ -1,4 +1,4 @@
-import { createMicroApi, MicroApiError } from "tanstack-rest-query";
+import { createMicroApi, MicroApiError } from "micro-rq";
 import { tokenProvider } from "./token-provider";
 
 const baseUrl = "https://dummyjson.com";

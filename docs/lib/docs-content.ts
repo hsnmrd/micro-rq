@@ -22,9 +22,9 @@ export type DocPage = {
 export const sections: DocSection[] = [
   {
     id: "what-is",
-    title: "What is tanstack-rest-query?",
+    title: "What is micro-rq?",
     body: [
-      "**tanstack-rest-query** helps you define a REST endpoint once and reuse it everywhere.",
+      "**micro-rq** helps you define a REST endpoint once and reuse it everywhere.",
       "It does not replace TanStack Query. It prepares the repeated request pieces for you, such as `queryKey`, `queryFn`, `mutationFn`, URLs, headers, parsing, auth, and token refresh.",
       "You still use TanStack Query normally with `useQuery`, `useMutation`, `invalidateQueries`, and your usual query options.",
     ],
@@ -41,7 +41,7 @@ export const sections: DocSection[] = [
     body: [
       "In many REST apps, one endpoint is described in too many places. The URL may live in one file, the query key in another, and the invalidation logic in a third.",
       "That repeated work is not really TanStack Query logic. It is the REST setup around TanStack Query.",
-      "`tanstack-rest-query` **keeps that setup in one place** so each endpoint has one typed definition and one stable query key shape.",
+      "`micro-rq` **keeps that setup in one place** so each endpoint has one typed definition and one stable query key shape.",
       "The example below shows the problem first, then shows how this package solves it.",
     ],
     code: [
@@ -65,7 +65,7 @@ useQuery({
   enabled: Boolean(userId),
 });
 
-// With tanstack-rest-query, the endpoint owns URL, fetch, parsing, and key shape.
+// With micro-rq, the endpoint owns URL, fetch, parsing, and key shape.
 useQuery({
   ...users.detail.toQuery(userId),
   enabled: Boolean(userId),
@@ -77,9 +77,9 @@ useQuery({
     id: "install",
     title: "Install",
     body: [
-      "Install **tanstack-rest-query** next to **TanStack Query**. TanStack Query is a peer dependency because your app still uses it directly.",
+      "Install **micro-rq** next to **TanStack Query**. TanStack Query is a peer dependency because your app still uses it directly.",
     ],
-    code: [{ code: "npm install tanstack-rest-query @tanstack/react-query" }],
+    code: [{ code: "npm install micro-rq @tanstack/react-query" }],
   },
   {
     id: "step-client",
@@ -99,7 +99,7 @@ useQuery({
     code: [
       {
         code: `// api/client.ts
-import { createMicroApi } from "tanstack-rest-query";
+import { createMicroApi } from "micro-rq";
 
 export const api = createMicroApi({
   name: "main",
@@ -292,7 +292,7 @@ await users.update.fn({
     title: "Query serialization",
     body: [
       "Use the `query` mapper when an endpoint needs URL search params.",
-      "Return a plain object from the mapper. tanstack-rest-query turns that object into the final query string.",
+      "Return a plain object from the mapper. micro-rq turns that object into the final query string.",
       "This keeps endpoint paths clean and avoids manually writing strings like `?page=1`.",
     ],
     items: [
@@ -325,7 +325,7 @@ await users.update.fn({
     tone: "info",
     body: [
       "`content-type: application/json` is added for JSON bodies when no content type exists.",
-      "If you provide a `content-type` header yourself, tanstack-rest-query keeps your value.",
+      "If you provide a `content-type` header yourself, micro-rq keeps your value.",
     ],
   },
   {
@@ -728,7 +728,7 @@ const updateProduct = useMutation({
     ],
     code: [
       {
-        code: `import { createMicroApi } from "tanstack-rest-query";
+        code: `import { createMicroApi } from "micro-rq";
 
 export const api = createMicroApi({
   name: "main",
@@ -879,7 +879,7 @@ const billingApi = createMicroApi({
     id: "client-fetcher",
     title: "fetcher",
     body: [
-      "`fetcher` replaces the fetch implementation used by tanstack-rest-query.",
+      "`fetcher` replaces the fetch implementation used by micro-rq.",
       "By default, the package uses `globalThis.fetch`.",
       "Provide `fetcher` when you need a mock fetch in tests, when your environment has no global fetch, or when you want to wrap fetch with custom behavior.",
       "If only some endpoints need a custom fetcher, create another client with `api.extend()` instead of repeating the whole config.",
@@ -1024,7 +1024,7 @@ export const uploadApi = api.extend({
     ],
     code: [
       {
-        code: `import { createMicroApi } from "tanstack-rest-query";
+        code: `import { createMicroApi } from "micro-rq";
 
 export const publicApi = createMicroApi({
   name: "public",
@@ -1046,7 +1046,7 @@ export const auth = publicApi.resource("auth", {
 });`,
       },
       {
-        code: `import { createTokenProvider } from "tanstack-rest-query";
+        code: `import { createTokenProvider } from "micro-rq";
 import { auth } from "./auth";
 
 const tokenProvider = createTokenProvider({
@@ -1067,7 +1067,7 @@ const tokenProvider = createTokenProvider({
 });`,
       },
       {
-        code: `import { createMicroApi, MicroApiError } from "tanstack-rest-query";
+        code: `import { createMicroApi, MicroApiError } from "micro-rq";
 import { tokenProvider } from "./token-provider";
 
 export const api = createMicroApi({
@@ -1096,7 +1096,7 @@ export const api = createMicroApi({
     title: "Headers",
     eyebrow: "Request configuration",
     body: [
-      "tanstack-rest-query has three places for headers: API-level `headers`, endpoint-level `headers`, and `authHeader`.",
+      "micro-rq has three places for headers: API-level `headers`, endpoint-level `headers`, and `authHeader`.",
       "Use API-level `headers` for values shared by many requests. Use endpoint-level `headers` when the value depends on endpoint variables. Use `authHeader` only for turning an access token into auth headers.",
     ],
     items: [
@@ -1196,7 +1196,7 @@ export const payments = api.resource("payments", {
     title: "Uploading files with FormData",
     body: [
       "For common uploads, set `bodyType: \"form-data\"` and return a plain object from the `body` mapper.",
-      "tanstack-rest-query converts that object to `FormData` automatically.",
+      "micro-rq converts that object to `FormData` automatically.",
       "The endpoint variables can include a `File`, `Blob`, metadata, and any IDs needed to build the path.",
     ],
     items: [
@@ -1308,7 +1308,7 @@ export const gallery = api.resource("gallery", {
       "The component should still use `useMutation()` normally. It can read progress from a small app hook such as `useUploadProgress()`.",
     ],
     items: [
-      "`useUploadProgress` is an app hook, not a tanstack-rest-query API.",
+      "`useUploadProgress` is an app hook, not a micro-rq API.",
       "Use `XMLHttpRequest.upload.onprogress` inside the custom fetcher.",
       "Store progress by upload key, endpoint name, or request ID.",
       "TanStack Query still owns mutation pending, success, and error state.",
@@ -1482,7 +1482,7 @@ export function AvatarUploader() {
     ],
     code: [
       {
-        code: `import { createTokenProvider } from "tanstack-rest-query";
+        code: `import { createTokenProvider } from "micro-rq";
 
 export const tokenProvider = createTokenProvider({
   getAccessToken: () => localStorage.getItem("accessToken"),
@@ -1506,7 +1506,7 @@ export const tokenProvider = createTokenProvider({
 });`,
       },
       {
-        code: `import { createMicroApi } from "tanstack-rest-query";
+        code: `import { createMicroApi } from "micro-rq";
 import { tokenProvider } from "./token-provider";
 
 export const api = createMicroApi({
@@ -1633,7 +1633,7 @@ export const auth = publicApi.resource("auth", {
     ],
     code: [
       {
-        code: `import { MicroApiError, MicroAuthRequiredError } from "tanstack-rest-query";
+        code: `import { MicroApiError, MicroAuthRequiredError } from "micro-rq";
 
 try {
   await users.detail.fn("user-1")();
@@ -1673,8 +1673,8 @@ try {
     title: "Handling 401 Unauthorized",
     body: [
       "For endpoints with `authMode: \"optional\"` or `authMode: \"required\"`, a `401` automatically triggers `tokenProvider.refreshAccessToken()` when refresh is configured.",
-      "tanstack-rest-query retries the original request once after refresh succeeds. If the retry still returns `401`, the final `MicroApiError` is thrown to TanStack Query and observed by `onError`.",
-      "Use global `onError` for auth cleanup after the final failure. Do not clear tokens on the first `401`; tanstack-rest-query may still be able to refresh and retry.",
+      "micro-rq retries the original request once after refresh succeeds. If the retry still returns `401`, the final `MicroApiError` is thrown to TanStack Query and observed by `onError`.",
+      "Use global `onError` for auth cleanup after the final failure. Do not clear tokens on the first `401`; micro-rq may still be able to refresh and retry.",
     ],
     items: [
       "Auto refresh happens only for `401`.",
@@ -1722,7 +1722,7 @@ try {
     title: "Handling 403 Forbidden",
     body: [
       "`403` means the request was authenticated, but the user is not allowed to perform that action.",
-      "tanstack-rest-query does not refresh the token for `403`. Refreshing usually will not help because the access token is valid but lacks permission.",
+      "micro-rq does not refresh the token for `403`. Refreshing usually will not help because the access token is valid but lacks permission.",
       "Handle `403` as an authorization or permissions problem: show an access-denied state, redirect to a safe page, or hide unavailable actions.",
     ],
     items: [
@@ -1929,7 +1929,7 @@ export const pages: DocPage[] = [
   {
     slug: "getting-started",
     title: "Getting Started",
-    description: "Learn what tanstack-rest-query solves, then define and use your first REST resource.",
+    description: "Learn what micro-rq solves, then define and use your first REST resource.",
     sectionIds: ["what-is", "problem", "install", "step-client", "step-resource", "step-query", "step-mutation"],
   },
   {

@@ -15,7 +15,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <Link className="text-lg font-bold" href="/">
-            tanstack-rest-query DummyJSON
+            micro-rq DummyJSON
           </Link>
           <nav className="flex flex-wrap gap-2 text-sm">
             {links.map((link) => (

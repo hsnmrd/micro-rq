@@ -23,9 +23,5 @@ export type {
   TokenProvider,
   TokenProviderConfig,
 } from "./core/types";
-export type {
-  MicroApi
-} from "./core/create-micro-api"
-export type {
-  MicroQueryKey
-} from "./core/keys"
+export type { MicroApi } from "./core/create-micro-api";
+export type { MicroQueryKey } from "./core/keys";

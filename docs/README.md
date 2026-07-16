@@ -1,4 +1,4 @@
-# tanstack-rest-query Docs
+# micro-rq Docs
 
 This is a Next.js App Router documentation app for the library.
 

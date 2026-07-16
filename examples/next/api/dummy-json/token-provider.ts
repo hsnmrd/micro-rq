@@ -1,4 +1,4 @@
-import { createTokenProvider } from "tanstack-rest-query";
+import { createTokenProvider } from "micro-rq";
 
 export type AuthTokens = {
   accessToken: string;

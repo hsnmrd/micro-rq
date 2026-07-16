@@ -45,7 +45,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
   }, [normalizedSearch, pageSections]);
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("tanstack-rest-query-docs-theme");
+    const storedTheme = window.localStorage.getItem("micro-rq-docs-theme");
     if (storedTheme === "light" || storedTheme === "dark") {
       setTheme(storedTheme);
     }
@@ -97,7 +97,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
 
   function updateTheme(nextTheme: ThemeName) {
     setTheme(nextTheme);
-    window.localStorage.setItem("tanstack-rest-query-docs-theme", nextTheme);
+    window.localStorage.setItem("micro-rq-docs-theme", nextTheme);
   }
 
   return (
@@ -106,10 +106,10 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-3 text-inherit no-underline" href="/">
             <span className="grid size-10 place-items-center overflow-hidden rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] shadow-sm">
-              <Image alt="tanstack-rest-query logo" height={40} priority src="/rtq.png" width={40} />
+              <Image alt="micro-rq logo" height={40} priority src="/rtq.png" width={40} />
             </span>
             <span>
-              <strong className="block text-base leading-tight">tanstack-rest-query</strong>
+              <strong className="block text-base leading-tight">micro-rq</strong>
               <small className="block text-xs font-medium text-[var(--docs-muted)]">REST helpers for TanStack Query</small>
             </span>
           </Link>
@@ -133,7 +133,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
             </div>
             <a
               className="hidden rounded-full border border-[var(--docs-border)] bg-[var(--docs-surface)] px-4 py-2 text-sm font-semibold text-[var(--docs-text)] no-underline shadow-sm hover:border-[var(--docs-accent)] sm:inline-flex"
-              href="https://www.npmjs.com/package/tanstack-rest-query"
+              href="https://www.npmjs.com/package/micro-rq"
               rel="noreferrer"
               target="_blank"
             >
@@ -315,7 +315,7 @@ function CoreRule() {
     <section className="mt-6 rounded-2xl border border-[var(--docs-tip-border)] bg-[var(--docs-tip-bg)] px-5 py-4">
       <p className="text-sm font-bold uppercase tracking-[0.14em] text-[var(--docs-accent-strong)]">Core rule</p>
       <p className="mt-2 text-sm leading-6 text-[var(--docs-muted)]">
-        <InlineText text="tanstack-rest-query generates **TanStack Query config**. You still use TanStack Query options directly in `useQuery` and `useMutation`." />
+        <InlineText text="micro-rq generates **TanStack Query config**. You still use TanStack Query options directly in `useQuery` and `useMutation`." />
       </p>
     </section>
   );

@@ -1,4 +1,4 @@
-import { MicroApiError, MicroAuthRequiredError } from "tanstack-rest-query";
+import { MicroApiError, MicroAuthRequiredError } from "micro-rq";
 
 export function describeError(error: unknown) {
   if (error instanceof MicroApiError) {
