@@ -546,6 +546,8 @@ The example uses DummyJSON resources with public and authenticated clients. It d
 
 A Next.js + Tailwind documentation app is available in `docs/`.
 
+Deploy it on Vercel with Root Directory set to `docs`. After deployment, replace this line with the production docs URL.
+
 ```sh
 cd docs
 npm install
