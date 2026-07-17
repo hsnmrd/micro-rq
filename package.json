@@ -1,6 +1,6 @@
 {
   "name": "micro-rq",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.",
   "type": "module",
   "sideEffects": false,
