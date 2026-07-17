@@ -2,6 +2,8 @@
 
 Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.
 
+Docs: https://micro-rq-docs.vercel.app/
+
 `micro-rq` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
 
 Use it when you want one typed REST resource definition to produce:
@@ -544,9 +546,9 @@ The example uses DummyJSON resources with public and authenticated clients. It d
 
 ## Docs App
 
-A Next.js + Tailwind documentation app is available in `docs/`.
+Documentation is available at https://micro-rq-docs.vercel.app/.
 
-Deploy it on Vercel with Root Directory set to `docs`. After deployment, replace this line with the production docs URL.
+The Next.js + Tailwind documentation app source is in `docs/`.
 
 ```sh
 cd docs
