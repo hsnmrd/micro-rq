@@ -1860,6 +1860,7 @@ type MicroApi = {
     title: "Example app",
     body: [
       "The repository includes a structured Next.js App Router example app using DummyJSON.",
+      "Open the **Example app source** on GitHub: [examples/next](https://github.com/hsnmrd/micro-rq/tree/main/examples/next).",
       "It demonstrates server prefetch/hydration, product list/detail pages, login, protected routes, automatic refresh-token retry, infinite posts, mutations, upload, and error handling.",
     ],
     code: [
@@ -1876,7 +1877,6 @@ npm run dev`,
     body: [
       "In Server Components, pass the generated query config directly to TanStack Query's `prefetchQuery`.",
       "Then wrap the Client Component with `HydrationBoundary`. The client can call `useQuery` with the same endpoint config and read the prefetched data from the cache.",
-      "This is usually better than manually passing `initialData` props because the data is stored under the exact generated query key.",
     ],
     code: [
       {

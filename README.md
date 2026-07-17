@@ -1,46 +1,26 @@
 # micro-rq
 
-Define REST resources once and generate TanStack Query configs without wrapping TanStack Query.
+Define REST endpoints once and use them with TanStack Query without wrapping TanStack Query.
 
 Docs: https://micro-rq-docs.vercel.app/
 
-`micro-rq` does not replace TanStack Query. It only removes repeated code around base URLs, headers, auth tokens, refresh handling, REST request functions, query keys, query functions, and mutation functions.
+TanStack Query is excellent at caching, background refetching, retries, mutations, invalidation, and async server-state orchestration. In REST apps, the repeated work is usually not TanStack Query itself. It is the code around it: building URLs, serializing query params, creating stable query keys, adding auth headers, parsing responses, refreshing tokens, and keeping request functions consistent across screens.
 
-Use it when you want one typed REST resource definition to produce:
+`micro-rq` is a small resource builder for that surrounding REST layer. You describe each REST endpoint once, then use the generated output directly with TanStack Query.
 
-- stable TanStack Query keys
-- request functions for direct calls
-- `useQuery`-ready query configs
-- `useMutation`-ready mutation configs
-- shared auth, refresh, headers, and error handling
+It gives you:
 
-You still use TanStack Query normally:
+- stable query keys for invalidation and exact cache targeting
+- request functions for direct calls and tests
+- `useQuery`-ready configs with `queryKey` and `queryFn`
+- `useMutation`-ready configs with `mutationFn`
+- shared base URLs, headers, auth modes, token refresh, response parsing, and error handling
 
-```ts
-useQuery({
-  ...users.detail.toQuery(userId),
-  enabled: !!userId,
-  staleTime: 60_000,
-  select: (user) => user.name,
-});
-```
+It is useful when your app already uses TanStack Query and you want a typed, consistent REST layer without creating another hook abstraction.
 
-```ts
-useMutation({
-  ...users.create.toMutation(),
-  onSuccess: () => {
-    queryClient.invalidateQueries({
-      queryKey: users.list.baseKey(),
-    });
-  },
-});
-```
+It does not generate React hooks, replace TanStack Query, implement caching, or hide TanStack Query options. You still call `useQuery`, `useMutation`, `invalidateQueries`, and pass options such as `enabled`, `staleTime`, `select`, and `onSuccess` yourself.
 
-## What It Does Not Do
-
-`micro-rq` does not generate React hooks, wrap `useQuery`, wrap `useMutation`, implement caching, or hide TanStack Query options. `toQuery()` and `toMutation()` never accept React Query options such as `enabled`, `staleTime`, `retry`, `select`, or `onSuccess`.
-
-## Installation
+## Install
 
 ```sh
 npm install micro-rq @tanstack/react-query
@@ -50,14 +30,22 @@ npm install micro-rq @tanstack/react-query
 
 ## Quick Start
 
+### Step 1: Create an API client
+
 ```ts
 import { createMicroApi } from "micro-rq";
 
-const mainApi = createMicroApi({
+export const api = createMicroApi({
   name: "main",
   baseUrl: "/api",
 });
+```
 
+`name` is included in query keys. This keeps keys from different APIs separate.
+
+### Step 2: Define a resource
+
+```ts
 type User = {
   id: string;
   name: string;
@@ -69,30 +57,41 @@ type CreateUserDto = {
   email: string;
 };
 
-export const users = mainApi.resource("users", {
-  list: mainApi.get<User[], { page: number }>("/users", {
+export const users = api.resource("users", {
+  list: api.get<User[], { page: number }>("/users", {
     query: (params) => params,
   }),
-  detail: mainApi.get<User, string>((id) => `/users/${id}`),
-  create: mainApi.post<User, CreateUserDto>("/users"),
+  detail: api.get<User, string>((id) => `/users/${id}`),
+  create: api.post<User, CreateUserDto>("/users"),
 });
 ```
 
-## React Query Usage
+GET endpoints become query endpoints. POST, PUT, PATCH, and DELETE endpoints become mutation endpoints.
+
+### Step 3: Use query endpoints
 
 ```ts
 const usersQuery = useQuery({
   ...users.list.toQuery({ page: 1 }),
   staleTime: 60_000,
 });
-```
 
-```ts
 const userQuery = useQuery({
   ...users.detail.toQuery(userId),
-  enabled: !!userId,
+  enabled: Boolean(userId),
 });
 ```
+
+`toQuery()` returns only:
+
+```ts
+{
+  queryKey,
+  queryFn,
+}
+```
+
+### Step 4: Use mutation endpoints
 
 ```ts
 const createUser = useMutation({
@@ -110,41 +109,79 @@ createUser.mutate({
 });
 ```
 
-## Multiple Backends
-
-Each API client has its own `name`, and that name is included in query keys.
+`toMutation()` returns only:
 
 ```ts
-const mainApi = createMicroApi({
-  name: "main",
-  baseUrl: "https://api.example.com",
-});
-
-const paymentApi = createMicroApi({
-  name: "payment",
-  baseUrl: "https://payment.example.com",
-});
-
-export const users = mainApi.resource("users", {
-  list: mainApi.get<User[]>("/users"),
-});
-
-export const invoices = paymentApi.resource("invoices", {
-  list: paymentApi.get<Invoice[]>("/invoices"),
-});
+{
+  mutationFn,
+}
 ```
 
-Generated keys do not collide:
+Mutation variables are passed to `mutate()`, not to `toMutation()`.
+
+## Query Keys
+
+Keys follow this shape:
 
 ```ts
-users.list.key();
+[apiName, resourceName, endpointName, variables?]
+```
+
+```ts
+users.list.baseKey();
 // ["main", "users", "list"]
 
-invoices.list.key();
-// ["payment", "invoices", "list"]
+users.list.key({ page: 1 });
+// ["main", "users", "list", { page: 1 }]
+
+users.detail.key("user-1");
+// ["main", "users", "detail", "user-1"]
 ```
 
-## Token Provider
+Use `baseKey()` when you want to invalidate every query for one endpoint:
+
+```ts
+queryClient.invalidateQueries({
+  queryKey: users.list.baseKey(),
+});
+```
+
+Use `key(input)` when you want one exact query key.
+
+## Request Mapping
+
+Paths can be static or dynamic:
+
+```ts
+api.get<User[]>("/users");
+api.get<User, string>((id) => `/users/${id}`);
+```
+
+Use mappers when request variables do not match the final request directly:
+
+```ts
+api.get<User[], { page: number; search?: string }>("/users", {
+  query: (params) => params,
+});
+
+api.patch<User, { id: string; body: Partial<User> }>(
+  ({ id }) => `/users/${id}`,
+  {
+    body: ({ body }) => body,
+  },
+);
+```
+
+Query serialization rules:
+
+- `undefined` values are ignored.
+- `null` becomes `"null"`.
+- arrays repeat keys, for example `?tags=a&tags=b`
+- objects are JSON-stringified.
+
+For non-GET methods, variables are sent as the JSON body by default unless a `body` mapper is provided. GET requests never send a body.
+
+## Auth and Refresh
 
 ```ts
 import { createMicroApi, createTokenProvider } from "micro-rq";
@@ -154,18 +191,18 @@ type AuthTokens = {
   refreshToken: string;
 };
 
-const publicApi = createMicroApi({
-  name: "public",
-  baseUrl: "https://auth.example.com",
+const authApi = createMicroApi({
+  name: "auth",
+  baseUrl: "/api",
 });
 
-const auth = publicApi.resource("auth", {
-  refresh: publicApi.post<AuthTokens, { refreshToken?: string | null }>("/refresh", {
+const auth = authApi.resource("auth", {
+  refresh: authApi.post<AuthTokens, { refreshToken?: string | null }>("/refresh", {
     authMode: "none",
   }),
 });
 
-const authProvider = createTokenProvider({
+const tokenProvider = createTokenProvider({
   getAccessToken: () => localStorage.getItem("accessToken"),
   getRefreshToken: () => localStorage.getItem("refreshToken"),
   refresh: {
@@ -182,128 +219,27 @@ const authProvider = createTokenProvider({
   },
 });
 
-const mainApi = createMicroApi({
+export const api = createMicroApi({
   name: "main",
-  baseUrl: "https://api.example.com",
-  tokenProvider: authProvider,
+  baseUrl: "/api",
+  tokenProvider,
   authHeader: (token) => ({
     Authorization: `Bearer ${token}`,
   }),
 });
 ```
 
-Before a request, `getAccessToken()` is called. If a request returns `401` and `refresh` is configured, the token provider refreshes once and retries the original request once. Parallel `401` responses share the same refresh promise.
+If a request returns `401` and refresh is configured, `micro-rq` refreshes once and retries the original request once. Parallel `401` responses share the same refresh promise.
 
-## Resource Example
+Endpoint auth modes:
 
-```ts
-export const users = mainApi.resource("users", {
-  list: mainApi.get<User[], UserListParams>("/users", {
-    query: (params) => params,
-  }),
-  detail: mainApi.get<User, string>((id) => `/users/${id}`),
-  create: mainApi.post<User, CreateUserDto>("/users"),
-  update: mainApi.patch<User, { id: string; body: UpdateUserDto }>(
-    ({ id }) => `/users/${id}`,
-    {
-      body: ({ body }) => body,
-    },
-  ),
-  remove: mainApi.delete<void, string>((id) => `/users/${id}`),
-});
-```
+- `optional`: default. Use a token when one exists.
+- `none`: skip token lookup, auth header injection, and refresh-on-401.
+- `required`: require an access token before calling `fetch`; throws `MicroAuthRequiredError` if missing.
 
-## Query Key Rules
+## Errors
 
-Query keys follow this structure:
-
-```ts
-[apiName, resourceName, endpointName, ...args]
-```
-
-Examples:
-
-```ts
-users.list.key();
-// ["main", "users", "list"]
-
-users.list.key({ page: 1 });
-// ["main", "users", "list", { page: 1 }]
-
-users.detail.key("user-1");
-// ["main", "users", "detail", "user-1"]
-```
-
-## `baseKey()` vs `key()`
-
-Use `baseKey()` to invalidate all queries under one endpoint:
-
-```ts
-queryClient.invalidateQueries({
-  queryKey: users.list.baseKey(),
-});
-```
-
-Use `key(input)` to target one exact query:
-
-```ts
-queryClient.invalidateQueries({
-  queryKey: users.detail.key(userId),
-});
-```
-
-## Request Mapping
-
-Paths can be static or dynamic:
-
-```ts
-api.get<User[]>("/users");
-api.get<User, string>((id) => `/users/${id}`);
-```
-
-Request mappers support `query`, `body`, and per-request `headers`:
-
-```ts
-api.get<User[], UserListParams>("/users", {
-  query: (params) => params,
-});
-
-api.patch<User, { id: string; body: UpdateUserDto }>(
-  ({ id }) => `/users/${id}`,
-  {
-    body: ({ body }) => body,
-  },
-);
-```
-
-Use `authMode` to control token behavior for an endpoint:
-
-```ts
-api.post<LoginResponse, LoginDto>("/auth/login", {
-  authMode: "none",
-});
-
-api.get<AuthUser>("/auth/me", {
-  authMode: "required",
-});
-```
-
-`"optional"` is the default: use a token when one exists, but still allow the request without one.
-`"none"` skips token lookup, auth header injection, and refresh-on-401.
-`"required"` requires an access token before the request and throws `MicroAuthRequiredError` without calling `fetch` when none exists.
-
-For non-GET methods, variables are serialized as the JSON body by default unless a `body` mapper is provided. GET requests never send a body.
-
-Query serialization rules:
-
-- `undefined` values are ignored.
-- `null` becomes `"null"`.
-- Arrays repeat keys, for example `?tags=a&tags=b`.
-- Objects are JSON-stringified.
-
-## Error Handling
-
-Failed responses throw `MicroApiError`.
+Failed HTTP responses throw `MicroApiError`.
 
 ```ts
 import { MicroApiError } from "micro-rq";
@@ -320,31 +256,63 @@ try {
 }
 ```
 
-If the error response body is JSON, `data` is parsed JSON. If it is text, `data` is text. If it is empty, `data` is `null`.
-
-You can observe request failures at the API-client level with `onError`. The original error is still thrown so TanStack Query error state, retries, callbacks, and error boundaries keep working normally.
+You can also observe failures at the API-client level:
 
 ```ts
 const api = createMicroApi({
   name: "main",
   baseUrl: "/api",
   onError: (error, context) => {
-    if (error instanceof MicroApiError && error.status === 401) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-    }
-
-    console.log(context.method, context.url);
+    console.log(context.method, context.url, error);
   },
 });
 ```
 
-`onError` is called for failed HTTP responses, missing required auth, refresh failures, and network errors. If `onError` throws, `micro-rq` preserves the original request error.
+The original error is still thrown so TanStack Query retries, error state, callbacks, and error boundaries keep working normally.
+
+## Next.js SSR Hydration
+
+Use generated query configs with TanStack Query's `prefetchQuery`, then hydrate for Client Components.
+
+```tsx
+// app/products/page.tsx
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+import { ProductsClient } from "./products-client";
+
+export default async function ProductsPage() {
+  const queryClient = new QueryClient();
+  const params = { limit: 12, skip: 0 };
+
+  await queryClient.prefetchQuery(products.list.toQuery(params));
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ProductsClient params={params} />
+    </HydrationBoundary>
+  );
+}
+```
+
+```tsx
+// app/products/products-client.tsx
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { products } from "../api/resources/products";
+
+export function ProductsClient({ params }: { params: { limit: number; skip: number } }) {
+  const productsQuery = useQuery({
+    ...products.list.toQuery(params),
+  });
+
+  // Render productsQuery.data.
+}
+```
 
 ## TypeScript
 
 Inputs and outputs are inferred from endpoint definitions.
-The returned query and mutation config types are structural, so they stay assignable to TanStack Query even when a monorepo or linked package has more than one physical `@tanstack/react-query` install.
 
 ```ts
 const q = users.detail.toQuery("user-1");
@@ -373,166 +341,42 @@ me.get.key();
 me.get.fn();
 ```
 
-## API Reference
+## Public API
 
-## Public API Surface
+The root package export is the public API.
 
-The root package export is the public API. Treat changes to these exports as SemVer-relevant:
+Runtime exports:
 
-- Runtime exports: `createMicroApi`, `createTokenProvider`, `MicroApiError`, `MicroAuthRequiredError`
-- API/client types: `MicroApi`, `CreateMicroApiConfig`, `MicroRequestContext`, `TokenProvider`, `TokenProviderConfig`, `RefreshTokenConfig`
-- Endpoint/resource types: `BuiltResource`, `QueryEndpoint`, `MutationEndpoint`, `QueryConfig`, `MutationConfig`, `MicroQueryKey`, `VariablesArgs`
-- Request helper types: `AuthMode`, `BodyType`, `HttpMethod`, `MaybePromise`, `PathBuilder`, `RequestMappers`
+- `createMicroApi`
+- `createTokenProvider`
+- `MicroApiError`
+- `MicroAuthRequiredError`
 
-### `createMicroApi(config)`
+Type exports:
 
-```ts
-type CreateMicroApiConfig = {
-  name: string;
-  baseUrl: string;
-  headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>);
-  tokenProvider?: TokenProvider;
-  authHeader?: (token: string) => HeadersInit;
-  fetcher?: typeof fetch;
-  onError?: (error: unknown, context: MicroRequestContext) => void | Promise<void>;
-};
-```
+- `MicroApi`
+- `CreateMicroApiConfig`
+- `MicroRequestContext`
+- `TokenProvider`
+- `TokenProviderConfig`
+- `RefreshTokenConfig`
+- `BuiltResource`
+- `QueryEndpoint`
+- `MutationEndpoint`
+- `QueryConfig`
+- `MutationConfig`
+- `MicroQueryKey`
+- `VariablesArgs`
+- `AuthMode`
+- `BodyType`
+- `HttpMethod`
+- `MaybePromise`
+- `PathBuilder`
+- `RequestMappers`
 
-Creates an API client with:
+## Examples and Docs
 
-- `api.get<TData, TVariables>()`
-- `api.post<TData, TVariables>()`
-- `api.put<TData, TVariables>()`
-- `api.patch<TData, TVariables>()`
-- `api.delete<TData, TVariables>()`
-- `api.resource(resourceName, endpoints)`
-- `api.extend(overrides)`
-
-GET endpoints become query endpoints. POST, PUT, PATCH, and DELETE endpoints become mutation endpoints.
-Use `api.extend(overrides)` to reuse a client config and override only selected fields, such as `name` or `fetcher`.
-
-### Query Endpoint
-
-```ts
-users.detail.baseKey();
-users.detail.key("user-1");
-users.detail.fn("user-1");
-users.detail.toQuery("user-1");
-```
-
-`toQuery()` returns only:
-
-```ts
-{
-  queryKey,
-  queryFn,
-}
-```
-
-### Mutation Endpoint
-
-```ts
-users.create.fn({ name: "John", email: "john@example.com" });
-users.create.toMutation();
-```
-
-`toMutation()` returns only:
-
-```ts
-{
-  mutationFn,
-}
-```
-
-Mutation variables are passed to `mutate()`, not to `toMutation()`.
-
-### `createTokenProvider(config)`
-
-```ts
-type TokenProviderConfig<TTokens = unknown> = {
-  getAccessToken: () => string | null | Promise<string | null>;
-  getRefreshToken?: () => string | null | Promise<string | null>;
-  refresh?: {
-    fn: (input: { refreshToken?: string | null }) => Promise<TTokens>;
-    selectAccessToken?: (tokens: TTokens) => string;
-    onSuccess?: (tokens: TTokens) => void | Promise<void>;
-    onError?: (error: unknown) => void | Promise<void>;
-  };
-};
-```
-
-## Next.js SSR Hydration
-
-Use the generated query config directly with TanStack Query's `prefetchQuery` in Server Components, then hydrate the cache for Client Components.
-
-```tsx
-// app/products/page.tsx
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-import { products } from "../api/resources/products";
-import { ProductsClient } from "./products-client";
-
-export default async function ProductsPage() {
-  const queryClient = new QueryClient();
-  const params = {
-    limit: 12,
-    skip: 0,
-  };
-
-  await queryClient.prefetchQuery(products.list.toQuery(params));
-  await queryClient.prefetchQuery(products.categoryList.toQuery());
-
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <ProductsClient params={params} />
-    </HydrationBoundary>
-  );
-}
-```
-
-```tsx
-// app/products/products-client.tsx
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
-import { products } from "../api/resources/products";
-
-export function ProductsClient({ params }: { params: { limit: number; skip: number } }) {
-  const productsQuery = useQuery({
-    ...products.list.toQuery(params),
-  });
-
-  const categoriesQuery = useQuery({
-    ...products.categoryList.toQuery(),
-  });
-
-  // Render productsQuery.data and categoriesQuery.data.
-}
-```
-
-## Publishing
-
-The package builds ESM, CJS, and type declarations with `tsup`.
-
-```sh
-npm run typecheck
-npm run test
-npm run test:types
-npm run build
-npm pack --dry-run
-npm publish
-```
-
-Or run the full local release check:
-
-```sh
-npm run release:check
-```
-
-Before publishing, inspect the `npm pack --dry-run` file list and package size. The published files are limited to `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`.
-
-## Next.js App Router Example
-
-The example app is in `examples/next`.
+Example app:
 
 ```sh
 cd examples/next
@@ -540,18 +384,21 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
-
-The example uses DummyJSON resources with public and authenticated clients. It demonstrates server prefetch/hydration, product list/detail pages, login, protected routes, automatic refresh-token retry, infinite posts, mutations, upload, and error handling.
-
-## Docs App
-
-Documentation is available at https://micro-rq-docs.vercel.app/.
-
-The Next.js + Tailwind documentation app source is in `docs/`.
+Docs app source:
 
 ```sh
 cd docs
 npm install
 npm run dev
 ```
+
+## Publishing
+
+```sh
+npm run release:check
+npm publish
+```
+
+`release:check` runs typecheck, tests, type tests, build, and `npm pack --dry-run`.
+
+Published files are limited to `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`.
