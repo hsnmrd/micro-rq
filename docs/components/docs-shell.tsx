@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultPage, getPageSections, pages, sections, type DocPage, type DocSection } from "../lib/docs-content";
 
 type DocsShellProps = {
@@ -124,6 +124,11 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
     window.localStorage.setItem("micro-rq-docs-theme", nextTheme);
   }
 
+  function openSearch() {
+    setIsNavOpen(false);
+    setIsSearchOpen(true);
+  }
+
   return (
     <div className="min-h-screen bg-[var(--docs-bg)] text-[var(--docs-text)]" data-theme={theme}>
       <header className="border-b border-[var(--docs-border)] bg-[var(--docs-surface)]">
@@ -145,7 +150,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
             </Link>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <IconButton label={normalizedSearch ? "Edit search" : "Search docs"} onClick={() => setIsSearchOpen(true)}>
+            <IconButton label={normalizedSearch ? "Edit search" : "Search docs"} onClick={openSearch}>
               <SearchIcon />
             </IconButton>
             <div className="hidden rounded-full border border-[var(--docs-border)] bg-[var(--docs-soft)] p-1 sm:flex" aria-label="Theme">
@@ -189,6 +194,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         resultCount={visibleSections.length}
+        results={visibleSections}
         search={search}
         setSearch={setSearch}
       />
@@ -336,20 +342,33 @@ function SearchModal({
   isOpen,
   onClose,
   resultCount,
+  results,
   search,
   setSearch,
 }: {
   isOpen: boolean;
   onClose: () => void;
   resultCount: number;
+  results: DocSection[];
   search: string;
   setSearch: (value: string) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }
 
   const hasSearch = Boolean(search.trim());
+  const previewLimit = 6;
+  const previewResults = results.slice(0, previewLimit);
+  const hasMoreResults = resultCount > previewLimit;
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--docs-bg)] text-[var(--docs-text)]" role="dialog" aria-modal="true" aria-label="Search docs">
@@ -371,11 +390,11 @@ function SearchModal({
           <div className="flex items-center gap-3 rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-4 py-3 shadow-sm focus-within:border-[var(--docs-accent)] focus-within:ring-4 focus-within:ring-[var(--docs-ring)]">
             <SearchIcon />
             <input
-              autoFocus
-              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--docs-text)] outline-none placeholder:text-[var(--docs-muted)]"
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--docs-text)] outline-none placeholder:text-[var(--docs-faint)] placeholder:opacity-60"
               id="docs-search-modal-input"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="authMode, query keys, headers"
+              ref={inputRef}
               type="search"
               value={search}
             />
@@ -384,13 +403,56 @@ function SearchModal({
 
         <div className="min-h-0 flex-1 overflow-auto border-t border-[var(--docs-border)] py-5">
           {hasSearch ? (
-            <div className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4">
-              <p className="text-sm font-bold text-[var(--docs-heading)]">
-                {resultCount} matching section{resultCount === 1 ? "" : "s"}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--docs-muted)]">
-                Results update on the current page as you type. Close search to review the matching sections.
-              </p>
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4">
+                <p className="text-sm font-bold text-[var(--docs-heading)]">
+                  {resultCount} matching section{resultCount === 1 ? "" : "s"}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--docs-muted)]">
+                  Results update on the current page as you type.
+                </p>
+              </div>
+
+              {previewResults.length ? (
+                <div className="max-h-[min(22rem,45vh)] overflow-auto pr-1">
+                  <div className="grid gap-2">
+                    {previewResults.map((section) => (
+                      <a
+                        className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4 text-left no-underline transition hover:border-[var(--docs-accent)] hover:bg-[var(--docs-soft)]"
+                        href={`#${section.id}`}
+                        key={section.id}
+                        onClick={onClose}
+                      >
+                        {section.eyebrow ? (
+                          <span className="block text-xs font-bold uppercase tracking-[0.14em] text-[var(--docs-muted)]">
+                            {section.eyebrow}
+                          </span>
+                        ) : null}
+                        <span className="block text-sm font-bold text-[var(--docs-heading)]">
+                          {section.title}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4">
+                  <p className="text-sm font-bold text-[var(--docs-heading)]">No matching sections</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--docs-muted)]">
+                    Try searching for authMode, query keys, token provider, SSR hydration, or errors.
+                  </p>
+                </div>
+              )}
+
+              {hasMoreResults ? (
+                <button
+                  className="rounded-2xl border border-[var(--docs-accent)] bg-[var(--docs-accent-soft)] px-5 py-4 text-left text-sm font-bold text-[var(--docs-accent-strong)] transition hover:bg-[var(--docs-soft)]"
+                  onClick={onClose}
+                  type="button"
+                >
+                  View all {resultCount} results
+                </button>
+              ) : null}
             </div>
           ) : (
             <div className="grid gap-2">
@@ -794,7 +856,7 @@ function tokenClass(token: string) {
 }
 
 function InlineText({ text }: { text: string }) {
-  const tokenPattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const tokenPattern = /(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
 
@@ -808,7 +870,22 @@ function InlineText({ text }: { text: string }) {
     }
 
     const token = match[0];
-    if (token.startsWith("`")) {
+    if (token.startsWith("[")) {
+      const linkMatch = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
+      if (linkMatch) {
+        nodes.push(
+          <a
+            className="font-semibold text-[var(--docs-accent-strong)] underline decoration-[var(--docs-accent)] underline-offset-4 hover:text-[var(--docs-accent)]"
+            href={linkMatch[2]}
+            key={`${token}-${match.index}`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {linkMatch[1]}
+          </a>,
+        );
+      }
+    } else if (token.startsWith("`")) {
       nodes.push(
         <code className="rounded-md border border-[var(--docs-border)] bg-[var(--docs-soft)] px-1.5 py-0.5 text-[0.9em] font-semibold text-[var(--docs-text)]" key={`${token}-${match.index}`}>
           {token.slice(1, -1)}
