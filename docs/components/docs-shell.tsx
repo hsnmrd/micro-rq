@@ -19,6 +19,8 @@ const themes: Array<{ name: ThemeName; label: string }> = [
 
 export function DocsShell({ page = defaultPage }: DocsShellProps) {
   const [search, setSearch] = useState("");
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("light");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const normalizedSearch = search.trim().toLowerCase();
@@ -95,6 +97,28 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
     };
   }, [normalizedSearch, sectionNavigation]);
 
+  useEffect(() => {
+    if (!isNavOpen && !isSearchOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsNavOpen(false);
+        setIsSearchOpen(false);
+      }
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isNavOpen, isSearchOpen]);
+
   function updateTheme(nextTheme: ThemeName) {
     setTheme(nextTheme);
     window.localStorage.setItem("micro-rq-docs-theme", nextTheme);
@@ -104,17 +128,27 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
     <div className="min-h-screen bg-[var(--docs-bg)] text-[var(--docs-text)]" data-theme={theme}>
       <header className="border-b border-[var(--docs-border)] bg-[var(--docs-surface)]">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-3 text-inherit no-underline" href="/">
-            <span className="grid size-10 place-items-center overflow-hidden rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] shadow-sm">
-              <Image alt="micro-rq logo" height={40} priority src="/rtq.png" width={40} />
-            </span>
-            <span>
-              <strong className="block text-base leading-tight">micro-rq</strong>
-              <small className="block text-xs font-medium text-[var(--docs-muted)]">REST helpers for TanStack Query</small>
-            </span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex rounded-full border border-[var(--docs-border)] bg-[var(--docs-soft)] p-1" aria-label="Theme">
+          <div className="flex min-w-0 items-center gap-3">
+            <IconButton className="lg:hidden" label="Open navigation" onClick={() => setIsNavOpen(true)}>
+              <MenuIcon />
+            </IconButton>
+            <Link className="flex min-w-0 items-center gap-3 text-inherit no-underline" href="/">
+              <span className="grid size-10 place-items-center overflow-hidden rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] shadow-sm">
+                <Image alt="micro-rq logo" height={40} priority src="/rtq.png" width={40} />
+              </span>
+              <span className="min-w-0">
+                <strong className="block truncate text-base leading-tight">micro-rq</strong>
+                <small className="hidden text-xs font-medium text-[var(--docs-muted)] sm:block">
+                  REST helpers for TanStack Query
+                </small>
+              </span>
+            </Link>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <IconButton label={normalizedSearch ? "Edit search" : "Search docs"} onClick={() => setIsSearchOpen(true)}>
+              <SearchIcon />
+            </IconButton>
+            <div className="hidden rounded-full border border-[var(--docs-border)] bg-[var(--docs-soft)] p-1 sm:flex" aria-label="Theme">
               {themes.map((themeOption) => (
                 <button
                   className={[
@@ -143,44 +177,29 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
         </div>
       </header>
 
+      <MobileNavigationDrawer
+        currentPage={page}
+        isOpen={isNavOpen}
+        isSearching={Boolean(normalizedSearch)}
+        onClose={() => setIsNavOpen(false)}
+        pageDescription={normalizedSearch ? "Search results across **all docs**." : page.description}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        resultCount={visibleSections.length}
+        search={search}
+        setSearch={setSearch}
+      />
+
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_240px] lg:px-8">
-        <aside className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:overflow-auto">
-          <div className="border-l-2 border-[var(--docs-border)] bg-transparent pl-4">
-            <label className="grid gap-2 text-sm font-semibold text-[var(--docs-text)]">
-              Search docs
-              <input
-                className="w-full rounded-full border border-[var(--docs-border)] bg-[var(--docs-surface)] px-4 py-2 text-sm font-normal text-[var(--docs-text)] outline-none transition placeholder:text-[var(--docs-muted)] focus:border-[var(--docs-accent)] focus:ring-4 focus:ring-[var(--docs-ring)]"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="authMode, query keys, headers"
-                type="search"
-              />
-            </label>
-
-            <nav className="mt-5 grid gap-1" aria-label="Docs navigation">
-              {pages.map((navPage) => (
-                <Link
-                  className={[
-                    "rounded-full px-4 py-2 text-sm font-semibold no-underline transition",
-                    navPage.slug === page.slug && !normalizedSearch
-                      ? "bg-[var(--docs-accent-soft)] text-[var(--docs-accent-strong)]"
-                      : "text-[var(--docs-muted)] hover:bg-[var(--docs-soft)] hover:text-[var(--docs-text)]",
-                  ].join(" ")}
-                  href={navPage.slug === defaultPage.slug ? "/" : `/${navPage.slug}`}
-                  key={navPage.slug}
-                >
-                  {navPage.title}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="mt-7 border-l-2 border-[var(--docs-accent)] pl-4 text-sm text-[var(--docs-muted)]">
-            <strong className="block text-[var(--docs-text)]">Current page</strong>
-            <span className="mt-1 block">
-              <InlineText text={normalizedSearch ? "Search results across **all docs**." : page.description} />
-            </span>
-          </div>
+        <aside className="hidden lg:sticky lg:top-8 lg:block lg:h-[calc(100vh-4rem)] lg:overflow-auto">
+          <SidebarContent
+            currentPage={page}
+            isSearching={Boolean(normalizedSearch)}
+            pageDescription={normalizedSearch ? "Search results across **all docs**." : page.description}
+          />
         </aside>
 
         <main className="min-w-0">
@@ -209,6 +228,238 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function SidebarContent({
+  currentPage,
+  isSearching,
+  pageDescription,
+  onNavigate,
+}: {
+  currentPage: DocPage;
+  isSearching: boolean;
+  pageDescription: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      <div className="border-l-2 border-[var(--docs-border)] bg-transparent pl-4">
+        <DocsNavigation currentPage={currentPage} isSearching={isSearching} onNavigate={onNavigate} />
+      </div>
+
+      <div className="mt-7 border-l-2 border-[var(--docs-accent)] pl-4 text-sm text-[var(--docs-muted)]">
+        <strong className="block text-[var(--docs-text)]">Current page</strong>
+        <span className="mt-1 block">
+          <InlineText text={pageDescription} />
+        </span>
+      </div>
+    </>
+  );
+}
+
+function DocsNavigation({
+  currentPage,
+  isSearching,
+  onNavigate,
+}: {
+  currentPage: DocPage;
+  isSearching: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="grid gap-1" aria-label="Docs navigation">
+      {pages.map((navPage) => (
+        <Link
+          className={[
+            "rounded-full px-4 py-2 text-sm font-semibold no-underline transition",
+            navPage.slug === currentPage.slug && !isSearching
+              ? "bg-[var(--docs-accent-soft)] text-[var(--docs-accent-strong)]"
+              : "text-[var(--docs-muted)] hover:bg-[var(--docs-soft)] hover:text-[var(--docs-text)]",
+          ].join(" ")}
+          href={pageHref(navPage)}
+          key={navPage.slug}
+          onClick={onNavigate}
+        >
+          {navPage.title}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MobileNavigationDrawer({
+  currentPage,
+  isOpen,
+  isSearching,
+  onClose,
+  pageDescription,
+}: {
+  currentPage: DocPage;
+  isOpen: boolean;
+  isSearching: boolean;
+  onClose: () => void;
+  pageDescription: string;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Docs navigation">
+      <button className="absolute inset-0 bg-black/40" type="button" aria-label="Close navigation" onClick={onClose} />
+      <div className="relative flex h-full w-[min(22rem,calc(100vw-2rem))] flex-col border-r border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4 shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--docs-border)] pb-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--docs-muted)]">Navigation</p>
+            <strong className="mt-1 block text-lg leading-tight text-[var(--docs-heading)]">micro-rq docs</strong>
+          </div>
+          <IconButton label="Close navigation" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto py-5">
+          <SidebarContent
+            currentPage={currentPage}
+            isSearching={isSearching}
+            onNavigate={onClose}
+            pageDescription={pageDescription}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchModal({
+  isOpen,
+  onClose,
+  resultCount,
+  search,
+  setSearch,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  resultCount: number;
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  const hasSearch = Boolean(search.trim());
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[var(--docs-bg)] text-[var(--docs-text)]" role="dialog" aria-modal="true" aria-label="Search docs">
+      <div className="mx-auto flex min-h-full max-w-3xl flex-col px-4 py-4 sm:px-6 sm:py-6">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--docs-border)] pb-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--docs-muted)]">Search</p>
+            <h2 className="mt-1 text-xl font-black text-[var(--docs-heading)]">Find docs</h2>
+          </div>
+          <IconButton label="Close search" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        <div className="py-5">
+          <label className="sr-only" htmlFor="docs-search-modal-input">
+            Search docs
+          </label>
+          <div className="flex items-center gap-3 rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-4 py-3 shadow-sm focus-within:border-[var(--docs-accent)] focus-within:ring-4 focus-within:ring-[var(--docs-ring)]">
+            <SearchIcon />
+            <input
+              autoFocus
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[var(--docs-text)] outline-none placeholder:text-[var(--docs-muted)]"
+              id="docs-search-modal-input"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="authMode, query keys, headers"
+              type="search"
+              value={search}
+            />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto border-t border-[var(--docs-border)] py-5">
+          {hasSearch ? (
+            <div className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4">
+              <p className="text-sm font-bold text-[var(--docs-heading)]">
+                {resultCount} matching section{resultCount === 1 ? "" : "s"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--docs-muted)]">
+                Results update on the current page as you type. Close search to review the matching sections.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {["authMode", "query keys", "token provider", "SSR hydration", "MicroApiError"].map((term) => (
+                <button
+                  className="rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] px-5 py-4 text-left text-sm font-semibold text-[var(--docs-text)] transition hover:border-[var(--docs-accent)] hover:bg-[var(--docs-soft)]"
+                  key={term}
+                  onClick={() => setSearch(term)}
+                  type="button"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IconButton({
+  children,
+  className = "",
+  label,
+  onClick,
+}: {
+  children: ReactNode;
+  className?: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={[
+        "grid size-10 shrink-0 place-items-center rounded-full border border-[var(--docs-border)] bg-[var(--docs-surface)] text-[var(--docs-text)] shadow-sm transition hover:border-[var(--docs-accent)] hover:bg-[var(--docs-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--docs-ring)]",
+        className,
+      ].join(" ")}
+      aria-label={label}
+      title={label}
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
+    </svg>
   );
 }
 
