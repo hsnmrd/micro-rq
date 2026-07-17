@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: "micro-rq Docs",
   description: "Documentation for micro-rq: define REST resources once and generate TanStack Query configs.",
   icons: {
-    icon: "/rtq.png",
-    shortcut: "/rtq.png",
-    apple: "/rtq.png",
+    icon: "/icon.jpg",
+    shortcut: "/icon.jpg",
+    apple: "/icon.jpg",
   },
 };
 

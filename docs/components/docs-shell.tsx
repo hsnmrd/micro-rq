@@ -139,7 +139,7 @@ export function DocsShell({ page = defaultPage }: DocsShellProps) {
             </IconButton>
             <Link className="flex min-w-0 items-center gap-3 text-inherit no-underline" href="/">
               <span className="grid size-10 place-items-center overflow-hidden rounded-2xl border border-[var(--docs-border)] bg-[var(--docs-surface)] shadow-sm">
-                <Image alt="micro-rq logo" height={40} priority src="/rtq.png" width={40} />
+                <Image alt="micro-rq logo" height={100} priority src="/icon.jpg" width={100} />
               </span>
               <span className="min-w-0">
                 <strong className="block truncate text-base leading-tight">micro-rq</strong>
@@ -600,6 +600,8 @@ function pageHref(page: DocPage) {
 }
 
 function Hero({ page, isSearching, resultCount }: { page: DocPage; isSearching: boolean; resultCount: number }) {
+  const showBanner = page.slug === defaultPage.slug && !isSearching;
+
   return (
     <section className="border-b border-[var(--docs-border)] pb-8">
       <div>
