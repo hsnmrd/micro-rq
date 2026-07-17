@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/hsnmrd/micro-rq/issues"
   },
-  "homepage": "https://github.com/hsnmrd/micro-rq#readme",
+  "homepage": "https://micro-rq-docs.vercel.app/",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
